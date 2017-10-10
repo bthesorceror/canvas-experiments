@@ -116,13 +116,13 @@ domready(() => {
     square2.draw(context)
   })
 
-  window.onblur = () => {
+  window.addEventListener('blur', () => {
     game.pause()
-  }
+  })
 
-  window.onfocus = () => {
+  window.addEventListener('focus', () => {
     game.resume()
-  }
+  })
 
   game.start()
 })
