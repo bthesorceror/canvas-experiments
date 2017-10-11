@@ -11,9 +11,10 @@ class Entity {
   }
 
   update (dt) {
-    _.each(this.updaters, (updater) => {
-      updater(this, dt)
-    })
+    _.each(
+      this.updaters,
+      (updater) => updater(this, dt)
+    )
   }
 
   draw (context) {
@@ -73,47 +74,75 @@ const SquareRenderer = (color) => {
 }
 
 class Square extends Entity {
-  constructor (x, y, width, height, color = '#FFFFFF') {
+  constructor (x, y, width, height, options = {}) {
     super(x, y, 2)
+
+    options = _.defaults(options, {
+      color: '#FFFFFF',
+      fallingSpeed: 40,
+      rotationSpeed: 5
+    })
+
     this.width = width
     this.height = height
 
     this.renderers = [
-      SquareRenderer(color)
+      SquareRenderer(options.color)
     ]
 
     this.updaters = [
-      Rotation(this, 5),
-      Falling(20)
+      Rotation(this, options.rotationSpeed),
+      Falling(options.fallingSpeed)
     ]
   }
 }
 
-domready(() => {
-  let root = document.querySelector('#content')
+function createCanvas (width, height) {
   let canvas = document.createElement('canvas')
 
   canvas.width = 800
   canvas.height = 600
 
-  root.appendChild(canvas)
+  return canvas
+}
 
+domready(() => {
+  let root = document.querySelector('#content')
+  let canvas = createCanvas(800, 600)
   let context = canvas.getContext('2d')
+  let gamescreen = createCanvas(800, 600)
+
   let game = gameloop({ renderer: context })
-  let square1 = new Square(400, 300, 40, 40)
-  let square2 = new Square(200, 100, 40, 40, '#FF00FF')
+  let square1 = new Square(400, 300, 40, 40, { rotationSpeed: -25, fallingSpeed: -80 })
+  let square2 = new Square(200, 100, 40, 40, { color: '#FF00FF', rotationSpeed: 15 })
 
   game.on('update', (dt) => {
     square1.update(dt)
     square2.update(dt)
   })
 
-  game.on('draw', (context) => {
-    context.clearRect(0, 0, canvas.width, canvas.height)
+  function clear () {
+    context.save()
+
     context.fillStyle = '#000000'
+    context.clearRect(0, 0, canvas.width, canvas.height)
     context.fillRect(0, 0, canvas.width, canvas.height)
+
+    context.restore()
+  }
+
+  function copy () {
+    let gameContext = gamescreen.getContext('2d')
+    let image = context.getImageData(0, 0, 800, 600)
+
+    gameContext.putImageData(image, 0, 0)
+  }
+
+  game.on('draw', (context) => {
+    clear()
     square1.draw(context)
     square2.draw(context)
+    copy()
   })
 
   window.addEventListener('blur', () => {
@@ -125,4 +154,6 @@ domready(() => {
   })
 
   game.start()
+
+  root.appendChild(gamescreen)
 })
