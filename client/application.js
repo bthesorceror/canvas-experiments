@@ -41,127 +41,123 @@ function spin (entity, dt, rotationSpeed) {
   entity.rotation = entity.rotation % (2 * Math.PI)
 }
 
-const playerRotations = (rotationSpeed) => {
-  return (entity, dt) => {
-    if (Keys.allDown('space', 'right')) {
-      spin(entity, dt, -rotationSpeed)
-    }
-    if (Keys.allDown('space', 'left')) {
-      spin(entity, dt, rotationSpeed)
-    }
+function playerRotations (dt) {
+  let { rotationSpeed } = this.options
+
+  if (Keys.allDown('space', 'right')) {
+    spin(this, dt, -rotationSpeed)
+  }
+
+  if (Keys.allDown('space', 'left')) {
+    spin(this, dt, rotationSpeed)
   }
 }
 
-const userMover = () => {
-  return (entity, dt) => {
-    let multiplier = 70
+function userMover (dt) {
+  let multiplier = 70
 
-    if (Keys.isDown('left')) {
-      entity.x -= (dt * multiplier)
-    }
+  if (Keys.isDown('left')) {
+    this.x -= (dt * multiplier)
+  }
 
-    if (Keys.isDown('right')) {
-      entity.x += (dt * multiplier)
-    }
+  if (Keys.isDown('right')) {
+    this.x += (dt * multiplier)
+  }
 
-    if (Keys.isDown('up')) {
-      entity.y -= (dt * multiplier)
-    }
+  if (Keys.isDown('up')) {
+    this.y -= (dt * multiplier)
+  }
 
-    if (Keys.isDown('down')) {
-      entity.y += (dt * multiplier)
-    }
+  if (Keys.isDown('down')) {
+    this.y += (dt * multiplier)
   }
 }
 
 class Entity {
-  constructor (x, y) {
+  constructor (x, y, options = {}) {
     this.x = x
     this.y = y
-    this.updaters = []
-    this.renderers = []
+    this.options = _.defaults(options, {
+      width: 0,
+      height: 0,
+      updaters: [],
+      renderers: []
+    })
   }
 
   update (dt) {
-    _.each(
-      this.updaters,
-      (updater) => updater(this, dt)
-    )
+    let { updaters } = this.options
+    _.each(updaters, (u) => u.call(this, dt))
   }
 
   draw (context) {
-    _.each(this.renderers, (renderer) => {
+    let { width, height, renderers } = this.options
+
+    _.each(renderers, (renderer) => {
       context.save()
       context.translate(
-        this.x - this.width / 2.0,
-        this.y - this.height / 2.0
+        this.x - width / 2.0,
+        this.y - height / 2.0
       )
-      renderer(this, context)
+      renderer.call(this, context)
       context.restore()
     })
   }
 }
 
-const Rotation = (rotationSpeed) => {
-  return (entity, dt) => {
-    spin(entity, dt, rotationSpeed)
-  }
+function Rotation (dt) {
+  let { rotationSpeed } = this.options
+
+  spin(this, dt, rotationSpeed)
 }
 
-const Falling = (fallingSpeed) => {
-  return (entity, dt) => {
-    entity.y += (fallingSpeed * dt)
-  }
+function Falling (dt) {
+  let { fallingSpeed } = this.options
+
+  this.y += (fallingSpeed * dt)
 }
 
-const SquareRenderer = (color) => {
-  return (entity, context) => {
-    context.rotate(entity.rotation)
-    context.fillStyle = color
-    context.beginPath()
-    context.moveTo(
-      -entity.width / 2.0,
-      -entity.height / 2.0
-    )
-    context.lineTo(
-      entity.width / 2.0,
-      -entity.height / 2.0
-    )
-    context.lineTo(
-      entity.width / 2.0,
-      entity.height / 2.0
-    )
-    context.lineTo(
-      -entity.width / 2.0,
-      entity.height / 2.0
-    )
-    context.closePath()
-    context.fill()
-  }
+function SquareRenderer (context) {
+  let { color, width, height } = this.options
+
+  context.rotate(this.rotation)
+  context.fillStyle = color
+  context.beginPath()
+  context.moveTo(
+    -width / 2.0,
+    -height / 2.0
+  )
+  context.lineTo(
+    width / 2.0,
+    -height / 2.0
+  )
+  context.lineTo(
+    width / 2.0,
+    height / 2.0
+  )
+  context.lineTo(
+    -width / 2.0,
+    height / 2.0
+  )
+  context.closePath()
+  context.fill()
 }
 
-class Square extends Entity {
-  constructor (x, y, width, height, options = {}) {
-    super(x, y, 2)
-
-    options = _.defaults(options, {
-      color: '#FFFFFF',
-      fallingSpeed: 40,
-      rotationSpeed: 5
-    })
-
-    this.width = width
-    this.height = height
-
-    this.renderers = options.renderers || [
-      SquareRenderer(options.color)
+function square (x, y, options = {}) {
+  return new Entity(x, y, _.defaults(options, {
+    color: '#FFFFFF',
+    fallingSpeed: 40,
+    rotationSpeed: 5,
+    width: 40,
+    height: 40,
+    renderers: [
+      SquareRenderer
+    ],
+    updaters: [
+      Rotation,
+      Falling
     ]
-
-    this.updaters = options.updaters || [
-      Rotation(options.rotationSpeed),
-      Falling(options.fallingSpeed)
-    ]
-  }
+  }))
 }
 
 function createCanvas (width, height) {
@@ -180,25 +176,42 @@ domready(() => {
   let context = canvas.getContext('2d')
   let game = gameloop({ renderer: context })
 
-  let square1 = new Square(400, 300, 50, 50, {
+  let square1 = square(400, 300, {
     rotationSpeed: -25,
-    fallingSpeed: -80
+    fallingSpeed: -80,
+    width: 50,
+    height: 50
   })
 
-  let square2 = new Square(200, 100, 40, 40, {
+  let square2 = square(200, 100, {
     color: '#FF00FF',
     rotationSpeed: 15
   })
 
-  let square3 = new Square(100, 500, 40, 40, {
+  let square3 = square(100, 500, {
     color: '#FF0000',
-    updaters: [userMover()]
+    updaters: [userMover]
   })
 
-  let square4 = new Square(100, 400, 40, 40, {
+  let square4 = square(100, 400, {
     color: '#FF0000',
-    updaters: [userMover(), playerRotations(20)]
+    rotationSpeed: 25,
+    updaters: [userMover, playerRotations]
   })
+
+  let square5 = square(400, 400, {
+    color: '#FFF030',
+    rotationSpeed: 25,
+    updaters: []
+  })
+
+  let squares = [
+    square1,
+    square2,
+    square3,
+    square4,
+    square5
+  ]
 
   function clearCanvas () {
     context.save()
@@ -218,18 +231,13 @@ domready(() => {
   }
 
   game.on('update', (dt) => {
-    square1.update(dt)
-    square2.update(dt)
-    square3.update(dt)
-    square4.update(dt)
+    _.each(squares, (s) => s.update(dt))
+    squares = _.sortBy(squares, _.property('y'))
   })
 
   game.on('draw', (context) => {
     clearCanvas()
-    square1.draw(context)
-    square2.draw(context)
-    square3.draw(context)
-    square4.draw(context)
+    _.each(squares, (s) => s.draw(context))
     copyCanvas()
   })
 
