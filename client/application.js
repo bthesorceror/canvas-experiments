@@ -15,20 +15,45 @@ const Keys = (function () {
       space: [ArcadeKeys.keys.space]
     }[key] || []
 
-    return _.some(appliable, (k) => keys.isPressed(k))
+    return _.some(
+      appliable,
+      _.bind(keys.isPressed, keys)
+    )
+  }
+
+  function allDown (...list) {
+    return _.every(list, isDown)
   }
 
   return {
-    isDown
+    isDown,
+    allDown
   }
 })()
 
-const userMover = (rotationSpeed) => {
-  return (entity, dt) => {
-    if (!_.hasIn(entity, 'rotation')) {
-      entity.rotation = 0
-    }
+function spin (entity, dt, rotationSpeed) {
+  let rotation = rotationSpeed * dt
+  if (!_.hasIn(entity, 'rotation')) {
+    entity.rotation = 0
+  }
 
+  entity.rotation += rotation
+  entity.rotation = entity.rotation % (2 * Math.PI)
+}
+
+const playerRotations = (rotationSpeed) => {
+  return (entity, dt) => {
+    if (Keys.allDown('space', 'right')) {
+      spin(entity, dt, -rotationSpeed)
+    }
+    if (Keys.allDown('space', 'left')) {
+      spin(entity, dt, rotationSpeed)
+    }
+  }
+}
+
+const userMover = () => {
+  return (entity, dt) => {
     let multiplier = 70
 
     if (Keys.isDown('left')) {
@@ -45,20 +70,6 @@ const userMover = (rotationSpeed) => {
 
     if (Keys.isDown('down')) {
       entity.y += (dt * multiplier)
-    }
-
-    if (Keys.isDown('space') && Keys.isDown('right')) {
-      let rotation = rotationSpeed * dt
-
-      entity.rotation -= rotation
-      entity.rotation = entity.rotation % (2 * Math.PI)
-    }
-
-    if (Keys.isDown('space') && Keys.isDown('left')) {
-      let rotation = rotationSpeed * dt
-
-      entity.rotation += rotation
-      entity.rotation = entity.rotation % (2 * Math.PI)
     }
   }
 }
@@ -93,14 +104,7 @@ class Entity {
 
 const Rotation = (rotationSpeed) => {
   return (entity, dt) => {
-    if (!_.hasIn(entity, 'rotation')) {
-      entity.rotation = 0
-    }
-
-    let rotation = rotationSpeed * dt
-
-    entity.rotation += rotation
-    entity.rotation = entity.rotation % (2 * Math.PI)
+    spin(entity, dt, rotationSpeed)
   }
 }
 
@@ -188,7 +192,12 @@ domready(() => {
 
   let square3 = new Square(100, 500, 40, 40, {
     color: '#FF0000',
-    updaters: [userMover(10)]
+    updaters: [userMover()]
+  })
+
+  let square4 = new Square(100, 400, 40, 40, {
+    color: '#FF0000',
+    updaters: [userMover(), playerRotations(20)]
   })
 
   function clearCanvas () {
@@ -212,6 +221,7 @@ domready(() => {
     square1.update(dt)
     square2.update(dt)
     square3.update(dt)
+    square4.update(dt)
   })
 
   game.on('draw', (context) => {
@@ -219,6 +229,7 @@ domready(() => {
     square1.draw(context)
     square2.draw(context)
     square3.draw(context)
+    square4.draw(context)
     copyCanvas()
   })
 
