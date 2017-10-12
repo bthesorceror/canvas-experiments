@@ -86,11 +86,11 @@ class Square extends Entity {
     this.width = width
     this.height = height
 
-    this.renderers = [
+    this.renderers = options.renderers || [
       SquareRenderer(options.color)
     ]
 
-    this.updaters = [
+    this.updaters = options.updaters || [
       Rotation(this, options.rotationSpeed),
       Falling(options.fallingSpeed)
     ]
@@ -109,19 +109,21 @@ function createCanvas (width, height) {
 domready(() => {
   let root = document.querySelector('#content')
   let canvas = createCanvas(800, 600)
-  let context = canvas.getContext('2d')
   let gamescreen = createCanvas(800, 600)
-
+  let context = canvas.getContext('2d')
   let game = gameloop({ renderer: context })
-  let square1 = new Square(400, 300, 40, 40, { rotationSpeed: -25, fallingSpeed: -80 })
-  let square2 = new Square(200, 100, 40, 40, { color: '#FF00FF', rotationSpeed: 15 })
 
-  game.on('update', (dt) => {
-    square1.update(dt)
-    square2.update(dt)
+  let square1 = new Square(400, 300, 50, 50, {
+    rotationSpeed: -25,
+    fallingSpeed: -80
   })
 
-  function clear () {
+  let square2 = new Square(200, 100, 40, 40, {
+    color: '#FF00FF',
+    rotationSpeed: 15
+  })
+
+  function clearCanvas () {
     context.save()
 
     context.fillStyle = '#000000'
@@ -131,18 +133,23 @@ domready(() => {
     context.restore()
   }
 
-  function copy () {
+  function copyCanvas () {
     let gameContext = gamescreen.getContext('2d')
     let image = context.getImageData(0, 0, 800, 600)
 
     gameContext.putImageData(image, 0, 0)
   }
 
+  game.on('update', (dt) => {
+    square1.update(dt)
+    square2.update(dt)
+  })
+
   game.on('draw', (context) => {
-    clear()
+    clearCanvas()
     square1.draw(context)
     square2.draw(context)
-    copy()
+    copyCanvas()
   })
 
   window.addEventListener('blur', () => {
