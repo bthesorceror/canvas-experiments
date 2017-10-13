@@ -53,12 +53,12 @@ class Entity {
   }
 
   update (dt) {
-    let props = this.props.toJS()
-    let { updaters } = props
+    let props = this.props
+    let updaters = props.get('updaters')
 
     let ups = _.map(updaters, (fn) => {
       return function (state) {
-        return fn(dt, props, state)
+        return fn(dt, props.toJS(), state)
       }
     })
 
