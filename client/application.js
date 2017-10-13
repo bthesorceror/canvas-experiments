@@ -33,8 +33,8 @@ const Keys = (function () {
 })()
 
 class Entity {
-  constructor (props = {}, initialState = { x: 0, y: 0 }) {
-    this.state = fromJS(initialState)
+  constructor (props = {}, initialState = {}) {
+    this.state = fromJS(_.defaults(initialState, { x: 0, y: 0 }))
 
     this.props = fromJS(_.defaults(props, {
       width: 0,
@@ -71,8 +71,8 @@ class Entity {
     _.each(renderers, (renderer) => {
       context.save()
       context.translate(
-        this.state.get('x'),
-        this.state.get('y')
+        this.x,
+        this.y
       )
       renderer(
         context,
