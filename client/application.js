@@ -58,11 +58,11 @@ class Entity {
 
     let ups = _.map(updaters, (fn) => {
       return function (state) {
-        return fn(dt, props.toJS(), state)
+        return fromJS(fn(dt, props.toJS(), state))
       }
     })
 
-    this.state = fromJS(_.flow(ups)(this.state))
+    this.state = _.flow(ups)(this.state)
   }
 
   draw (context) {
