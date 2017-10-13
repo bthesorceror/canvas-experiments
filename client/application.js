@@ -2,6 +2,7 @@ const domready = require('domready')
 const gameloop = require('gameloop')
 const _ = require('lodash')
 const ArcadeKeys = require('arcade_keys')
+const { fromJS } = require('immutable')
 
 const Keys = (function () {
   let keys = ArcadeKeys()
@@ -31,96 +32,129 @@ const Keys = (function () {
   }
 })()
 
-function spin (entity, dt, rotationSpeed) {
-  let rotation = rotationSpeed * dt
-  if (!_.hasIn(entity, 'rotation')) {
-    entity.rotation = 0
-  }
-
-  entity.rotation += rotation
-  entity.rotation = entity.rotation % (2 * Math.PI)
-}
-
-function playerRotations (dt) {
-  let { rotationSpeed } = this.options
-
-  if (Keys.allDown('space', 'right')) {
-    spin(this, dt, -rotationSpeed)
-  }
-
-  if (Keys.allDown('space', 'left')) {
-    spin(this, dt, rotationSpeed)
-  }
-}
-
-function userMover (dt) {
-  let multiplier = 70
-
-  if (Keys.isDown('left')) {
-    this.x -= (dt * multiplier)
-  }
-
-  if (Keys.isDown('right')) {
-    this.x += (dt * multiplier)
-  }
-
-  if (Keys.isDown('up')) {
-    this.y -= (dt * multiplier)
-  }
-
-  if (Keys.isDown('down')) {
-    this.y += (dt * multiplier)
-  }
-}
-
 class Entity {
-  constructor (x, y, options = {}) {
-    this.x = x
-    this.y = y
-    this.options = _.defaults(options, {
+  constructor (props = {}, initialState = { x: 0, y: 0 }) {
+    this.state = fromJS(initialState)
+
+    this.props = fromJS(_.defaults(props, {
       width: 0,
       height: 0,
       updaters: [],
       renderers: []
-    })
+    }))
+  }
+
+  get x () {
+    return this.state.get('x')
+  }
+
+  get y () {
+    return this.state.get('y')
   }
 
   update (dt) {
-    let { updaters } = this.options
-    _.each(updaters, (u) => u.call(this, dt))
+    let props = this.props.toJS()
+    let { updaters } = props
+
+    let ups = _.map(updaters, (fn) => {
+      return function (state) {
+        return fn(dt, props, state)
+      }
+    })
+
+    this.state = fromJS(_.flow(ups)(this.state))
   }
 
   draw (context) {
-    let { width, height, renderers } = this.options
+    let { renderers } = this.props.toJS()
 
     _.each(renderers, (renderer) => {
       context.save()
       context.translate(
-        this.x - width / 2.0,
-        this.y - height / 2.0
+        this.state.get('x'),
+        this.state.get('y')
       )
-      renderer.call(this, context)
+      renderer(
+        context,
+        this.props.toJS(),
+        this.state.toJS()
+      )
       context.restore()
     })
   }
 }
 
-function Rotation (dt) {
-  let { rotationSpeed } = this.options
+function spin (dt, state, rotationSpeed) {
+  let { rotation } = state.toJS()
+  let newRotation = rotationSpeed * dt
 
-  spin(this, dt, rotationSpeed)
+  rotation = rotation || 0
+
+  rotation += newRotation
+  rotation = rotation % (2 * Math.PI)
+
+  return { rotation }
 }
 
-function Falling (dt) {
-  let { fallingSpeed } = this.options
+function playerRotations (dt, props, state) {
+  let { rotationSpeed } = props
 
-  this.y += (fallingSpeed * dt)
+  if (Keys.allDown('space', 'right')) {
+    state = state.merge(spin(dt, state, -rotationSpeed))
+  }
+
+  if (Keys.allDown('space', 'left')) {
+    state = state.merge(spin(dt, state, rotationSpeed))
+  }
+
+  return state
 }
 
-function SquareRenderer (context) {
-  let { color, width, height } = this.options
+function userMover (dt, props, state) {
+  let multiplier = 70
+  let { x, y } = state.toJS()
 
-  context.rotate(this.rotation)
+  if (Keys.isDown('left')) {
+    x -= (dt * multiplier)
+  }
+
+  if (Keys.isDown('right')) {
+    x += (dt * multiplier)
+  }
+
+  if (Keys.isDown('up')) {
+    y -= (dt * multiplier)
+  }
+
+  if (Keys.isDown('down')) {
+    y += (dt * multiplier)
+  }
+
+  return state.merge({ x, y })
+}
+
+function Rotation (dt, props, state) {
+  let { rotationSpeed } = props
+
+  return state.merge(
+    spin(dt, state, rotationSpeed)
+  )
+}
+
+function Falling (dt, props, state) {
+  let { fallingSpeed } = props
+  let { y } = state.toJS()
+
+  y += (fallingSpeed * dt)
+
+  return state.merge({ y })
+}
+
+function SquareRenderer (context, props, state) {
+  let { color, width, height } = props
+  let { rotation } = state
+
+  context.rotate(rotation)
   context.fillStyle = color
   context.beginPath()
   context.moveTo(
@@ -144,7 +178,7 @@ function SquareRenderer (context) {
 }
 
 function square (x, y, options = {}) {
-  return new Entity(x, y, _.defaults(options, {
+  return new Entity(_.defaults(options, {
     color: '#FFFFFF',
     fallingSpeed: 40,
     rotationSpeed: 5,
@@ -157,7 +191,11 @@ function square (x, y, options = {}) {
       Rotation,
       Falling
     ]
-  }))
+  }), {
+    rotation: 0,
+    x: x,
+    y: y
+  })
 }
 
 function createCanvas (width, height) {
