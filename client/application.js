@@ -54,11 +54,11 @@ class Entity {
 
   update (dt) {
     let props = this.props
-    let updaters = props.get('updaters')
+    let updaters = props.get('updaters').toJS()
 
     let ups = _.map(updaters, (fn) => {
       return function (state) {
-        return fromJS(fn(dt, props.toJS(), state))
+        return state.merge(fn(dt, props.toJS(), state.toJS()))
       }
     })
 
@@ -84,8 +84,7 @@ class Entity {
   }
 }
 
-function spin (dt, state, rotationSpeed) {
-  let { rotation } = state.toJS()
+function spin (dt, rotation, rotationSpeed) {
   let newRotation = rotationSpeed * dt
 
   rotation = rotation || 0
@@ -93,26 +92,27 @@ function spin (dt, state, rotationSpeed) {
   rotation += newRotation
   rotation = rotation % (2 * Math.PI)
 
-  return { rotation }
+  return rotation
 }
 
 function playerRotations (dt, props, state) {
   let { rotationSpeed } = props
+  let { rotation } = state
 
   if (Keys.allDown('space', 'right')) {
-    state = state.merge(spin(dt, state, -rotationSpeed))
+    rotation = spin(dt, rotation, -rotationSpeed)
   }
 
   if (Keys.allDown('space', 'left')) {
-    state = state.merge(spin(dt, state, rotationSpeed))
+    rotation = spin(dt, rotation, rotationSpeed)
   }
 
-  return state
+  return { rotation }
 }
 
 function userMover (dt, props, state) {
   let multiplier = 70
-  let { x, y } = state.toJS()
+  let { x, y } = state
 
   if (Keys.isDown('left')) {
     x -= (dt * multiplier)
@@ -130,24 +130,25 @@ function userMover (dt, props, state) {
     y += (dt * multiplier)
   }
 
-  return state.merge({ x, y })
+  return { x, y }
 }
 
 function Rotation (dt, props, state) {
   let { rotationSpeed } = props
+  let { rotation } = state
 
-  return state.merge(
-    spin(dt, state, rotationSpeed)
-  )
+  rotation = spin(dt, rotation, rotationSpeed)
+
+  return { rotation }
 }
 
 function Falling (dt, props, state) {
   let { fallingSpeed } = props
-  let { y } = state.toJS()
+  let { y } = state
 
   y += (fallingSpeed * dt)
 
-  return state.merge({ y })
+  return { y }
 }
 
 function SquareRenderer (context, props, state) {
