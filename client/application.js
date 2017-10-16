@@ -52,13 +52,20 @@ class Entity {
     return this.state.get('y')
   }
 
-  update (dt) {
-    let props = this.props
-    let updaters = props.get('updaters').toJS()
+  get updaters () {
+    return this.props.get('updaters').toJS()
+  }
 
-    let ups = _.map(updaters, (fn) => {
-      return function (state) {
-        return state.merge(fn(dt, props.toJS(), state.toJS()))
+  get renderers () {
+    return this.props.get('renderers').toJS()
+  }
+
+  update (dt) {
+    let ups = _.map(this.updaters, (fn) => {
+      return (state) => {
+        return state.merge(
+          fn(dt, this.props.toJS(), state.toJS())
+        )
       }
     })
 
@@ -66,9 +73,7 @@ class Entity {
   }
 
   draw (context) {
-    let { renderers } = this.props.toJS()
-
-    _.each(renderers, (renderer) => {
+    _.each(this.renderers, (renderer) => {
       context.save()
       context.translate(
         this.x,
@@ -270,13 +275,13 @@ domready(() => {
   }
 
   game.on('update', (dt) => {
-    _.each(squares, (s) => s.update(dt))
+    _.each(squares, _.method('update', dt))
     squares = _.sortBy(squares, _.property('y'))
   })
 
   game.on('draw', (context) => {
     clearCanvas()
-    _.each(squares, (s) => s.draw(context))
+    _.each(squares, _.method('draw', context))
     copyCanvas()
   })
 
@@ -289,6 +294,5 @@ domready(() => {
   })
 
   game.start()
-
   root.appendChild(gamescreen)
 })
