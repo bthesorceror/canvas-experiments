@@ -55,6 +55,14 @@ class Entity {
     return this.state.get('y')
   }
 
+  get height () {
+    return this.state.get('height')
+  }
+
+  get width () {
+    return this.state.get('width')
+  }
+
   get updaters () {
     return this.props.get('updaters').toJS()
   }
@@ -148,6 +156,19 @@ function Falling (dt, state) {
   return { y }
 }
 
+function growing (dt, state) {
+  let { width, height, growthRate } = state
+
+  if (width >= 200 || height >= 200 || width <= 20 || height <= 20) {
+    growthRate *= -1
+  }
+
+  width += (dt * growthRate)
+  height += (dt * growthRate)
+
+  return { width, height, growthRate }
+}
+
 function SquareRenderer (context, state) {
   let { color, width, height, rotation } = state
 
@@ -239,10 +260,11 @@ domready(() => {
   })
 
   let square5 = square(400, 400, {
-    updaters: []
+    updaters: [growing, Rotation]
   }, {
+    growthRate: 20,
     color: '#FFF030',
-    rotationSpeed: 25
+    rotationSpeed: -25
   })
 
   let squares = [
@@ -272,7 +294,9 @@ domready(() => {
 
   game.on('update', (dt) => {
     _.each(squares, _.method('update', dt))
-    squares = _.sortBy(squares, _.property('y'))
+    squares = _.sortBy(squares, (square) => {
+      return square.y + (square.height / 2.0)
+    })
   })
 
   game.on('draw', (context) => {
