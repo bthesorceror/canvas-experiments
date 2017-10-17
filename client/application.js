@@ -111,23 +111,22 @@ function playerRotations (dt, state) {
 }
 
 function userMover (dt, state) {
-  let multiplier = 70
-  let { x, y } = state
+  let { movementSpeed, x, y } = state
 
   if (Keys.isDown('left')) {
-    x -= (dt * multiplier)
+    x -= (dt * movementSpeed)
   }
 
   if (Keys.isDown('right')) {
-    x += (dt * multiplier)
+    x += (dt * movementSpeed)
   }
 
   if (Keys.isDown('up')) {
-    y -= (dt * multiplier)
+    y -= (dt * movementSpeed)
   }
 
   if (Keys.isDown('down')) {
-    y += (dt * multiplier)
+    y += (dt * movementSpeed)
   }
 
   return { x, y }
@@ -227,6 +226,7 @@ domready(() => {
   let square3 = square(100, 500, {
     updaters: [userMover]
   }, {
+    movementSpeed: 70,
     color: '#FF0000'
   })
 
@@ -234,6 +234,7 @@ domready(() => {
     updaters: [userMover, playerRotations]
   }, {
     color: '#FF0000',
+    movementSpeed: 180,
     rotationSpeed: 25
   })
 
