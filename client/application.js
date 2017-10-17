@@ -93,7 +93,7 @@ class Entity {
   }
 }
 
-function spin (dt, rotation, rotationSpeed) {
+function Spin (dt, rotation, rotationSpeed) {
   let newRotation = rotationSpeed * dt
 
   rotation = rotation || 0
@@ -104,21 +104,21 @@ function spin (dt, rotation, rotationSpeed) {
   return rotation
 }
 
-function playerRotations (dt, state) {
+function PlayerRotation (dt, state) {
   let { rotationSpeed, rotation } = state
 
   if (Keys.allDown('space', 'right')) {
-    rotation = spin(dt, rotation, -rotationSpeed)
+    rotation = Spin(dt, rotation, -rotationSpeed)
   }
 
   if (Keys.allDown('space', 'left')) {
-    rotation = spin(dt, rotation, rotationSpeed)
+    rotation = Spin(dt, rotation, rotationSpeed)
   }
 
   return { rotation }
 }
 
-function userMover (dt, state) {
+function UserMovement (dt, state) {
   let { movementSpeed, x, y } = state
 
   if (Keys.isDown('left')) {
@@ -143,7 +143,7 @@ function userMover (dt, state) {
 function Rotation (dt, state) {
   let { rotationSpeed, rotation } = state
 
-  rotation = spin(dt, rotation, rotationSpeed)
+  rotation = Spin(dt, rotation, rotationSpeed)
 
   return { rotation }
 }
@@ -156,7 +156,7 @@ function Falling (dt, state) {
   return { y }
 }
 
-function growing (dt, state) {
+function Growing (dt, state) {
   let { width, height, growthRate } = state
 
   if (width >= 200 || height >= 200 || width <= 20 || height <= 20) {
@@ -245,14 +245,14 @@ domready(() => {
   })
 
   let square3 = square(100, 500, {
-    updaters: [userMover]
+    updaters: [UserMovement]
   }, {
     movementSpeed: 70,
     color: '#FF0000'
   })
 
   let square4 = square(100, 400, {
-    updaters: [userMover, playerRotations]
+    updaters: [UserMovement, PlayerRotation]
   }, {
     color: '#FF0000',
     movementSpeed: 180,
@@ -260,7 +260,7 @@ domready(() => {
   })
 
   let square5 = square(400, 400, {
-    updaters: [growing, Rotation]
+    updaters: [Growing, Rotation]
   }, {
     growthRate: 20,
     color: '#FFF030',
