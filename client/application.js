@@ -34,11 +34,14 @@ const Keys = (function () {
 
 class Entity {
   constructor (props = {}, initialState = {}) {
-    this.state = fromJS(_.defaults(initialState, { x: 0, y: 0 }))
+    this.state = fromJS(_.defaults(initialState, {
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0
+    }))
 
     this.props = fromJS(_.defaults(props, {
-      width: 0,
-      height: 0,
       updaters: [],
       renderers: []
     }))
@@ -64,7 +67,7 @@ class Entity {
     let ups = _.map(this.updaters, (fn) => {
       return (state) => {
         return state.merge(
-          fn(dt, this.props.toJS(), state.toJS())
+          fn(dt, state.toJS())
         )
       }
     })
@@ -75,15 +78,8 @@ class Entity {
   draw (context) {
     _.each(this.renderers, (renderer) => {
       context.save()
-      context.translate(
-        this.x,
-        this.y
-      )
-      renderer(
-        context,
-        this.props.toJS(),
-        this.state.toJS()
-      )
+      context.translate(this.x, this.y)
+      renderer(context, this.state.toJS())
       context.restore()
     })
   }
@@ -100,9 +96,8 @@ function spin (dt, rotation, rotationSpeed) {
   return rotation
 }
 
-function playerRotations (dt, props, state) {
-  let { rotationSpeed } = props
-  let { rotation } = state
+function playerRotations (dt, state) {
+  let { rotationSpeed, rotation } = state
 
   if (Keys.allDown('space', 'right')) {
     rotation = spin(dt, rotation, -rotationSpeed)
@@ -115,7 +110,7 @@ function playerRotations (dt, props, state) {
   return { rotation }
 }
 
-function userMover (dt, props, state) {
+function userMover (dt, state) {
   let multiplier = 70
   let { x, y } = state
 
@@ -138,27 +133,24 @@ function userMover (dt, props, state) {
   return { x, y }
 }
 
-function Rotation (dt, props, state) {
-  let { rotationSpeed } = props
-  let { rotation } = state
+function Rotation (dt, state) {
+  let { rotationSpeed, rotation } = state
 
   rotation = spin(dt, rotation, rotationSpeed)
 
   return { rotation }
 }
 
-function Falling (dt, props, state) {
-  let { fallingSpeed } = props
-  let { y } = state
+function Falling (dt, state) {
+  let { fallingSpeed, y } = state
 
   y += (fallingSpeed * dt)
 
   return { y }
 }
 
-function SquareRenderer (context, props, state) {
-  let { color, width, height } = props
-  let { rotation } = state
+function SquareRenderer (context, state) {
+  let { color, width, height, rotation } = state
 
   context.rotate(rotation)
   context.fillStyle = color
@@ -183,13 +175,8 @@ function SquareRenderer (context, props, state) {
   context.fill()
 }
 
-function square (x, y, options = {}) {
-  return new Entity(_.defaults(options, {
-    color: '#FFFFFF',
-    fallingSpeed: 40,
-    rotationSpeed: 5,
-    width: 40,
-    height: 40,
+function square (x, y, props = {}, state = {}) {
+  return new Entity(_.defaults(props, {
     renderers: [
       SquareRenderer
     ],
@@ -197,11 +184,16 @@ function square (x, y, options = {}) {
       Rotation,
       Falling
     ]
-  }), {
+  }), _.defaults(state, {
+    color: '#FFFFFF',
+    fallingSpeed: 40,
+    rotationSpeed: 5,
+    width: 40,
+    height: 40,
     rotation: 0,
     x: x,
     y: y
-  })
+  }))
 }
 
 function createCanvas (width, height) {
@@ -220,33 +212,36 @@ domready(() => {
   let context = canvas.getContext('2d')
   let game = gameloop({ renderer: context })
 
-  let square1 = square(400, 300, {
+  let square1 = square(400, 300, {}, {
     rotationSpeed: -25,
     fallingSpeed: -80,
     width: 50,
     height: 50
   })
 
-  let square2 = square(200, 100, {
+  let square2 = square(200, 100, {}, {
     color: '#FF00FF',
     rotationSpeed: 15
   })
 
   let square3 = square(100, 500, {
-    color: '#FF0000',
     updaters: [userMover]
+  }, {
+    color: '#FF0000'
   })
 
   let square4 = square(100, 400, {
-    color: '#FF0000',
-    rotationSpeed: 25,
     updaters: [userMover, playerRotations]
+  }, {
+    color: '#FF0000',
+    rotationSpeed: 25
   })
 
   let square5 = square(400, 400, {
-    color: '#FFF030',
-    rotationSpeed: 25,
     updaters: []
+  }, {
+    color: '#FFF030',
+    rotationSpeed: 25
   })
 
   let squares = [
