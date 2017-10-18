@@ -34,17 +34,17 @@ const Keys = (function () {
 
 class Entity {
   constructor (props = {}, initialState = {}) {
-    this.state = fromJS(_.defaults(initialState, {
+    this.state = fromJS({
       x: 0,
       y: 0,
       width: 0,
       height: 0
-    }))
+    }).merge(initialState)
 
-    this.props = fromJS(_.defaults(props, {
+    this.props = fromJS({
       updaters: [],
       renderers: []
-    }))
+    }).merge(props)
   }
 
   get x () {
@@ -71,10 +71,15 @@ class Entity {
     return this.props.get('renderers').toJS()
   }
 
+  updateState (attributes = {}) {
+    this.state = this.state.merge(attributes)
+    return this.state
+  }
+
   update (dt) {
     let ups = _.map(this.updaters, (fn) => {
       return (state) => {
-        return state.merge(
+        return this.updateState(
           fn(dt, state.toJS())
         )
       }
@@ -105,7 +110,11 @@ function Spin (dt, rotation, rotationSpeed) {
 }
 
 function PlayerRotation (dt, state) {
-  let { rotationSpeed, rotation } = state
+  let { active, rotationSpeed, rotation } = state
+
+  if (!active) {
+    return
+  }
 
   if (Keys.allDown('space', 'right')) {
     rotation = Spin(dt, rotation, -rotationSpeed)
@@ -119,7 +128,11 @@ function PlayerRotation (dt, state) {
 }
 
 function UserMovement (dt, state) {
-  let { movementSpeed, x, y } = state
+  let { active, movementSpeed, x, y } = state
+
+  if (!active) {
+    return
+  }
 
   if (Keys.isDown('left')) {
     x -= (dt * movementSpeed)
@@ -170,7 +183,11 @@ function Growing (dt, state) {
 }
 
 function SquareRenderer (context, state) {
-  let { color, width, height, rotation } = state
+  let { active, color, width, height, rotation } = state
+
+  if (active) {
+    color = '#00FF00'
+  }
 
   context.rotate(rotation)
   context.fillStyle = color
@@ -303,6 +320,29 @@ domready(() => {
     clearCanvas()
     _.each(squares, _.method('draw', context))
     copyCanvas()
+  })
+
+  const alternator = (function () {
+    let index = 0
+
+    let squares = [
+      square3,
+      square4
+    ]
+
+    squares[index].updateState({ active: true })
+
+    return function () {
+      squares[index].updateState({ active: false })
+      index = ((index + 1) % squares.length)
+      squares[index].updateState({ active: true })
+    }
+  })()
+
+  window.addEventListener('keypress', (evt) => {
+    if (evt.key === 't') {
+      alternator()
+    }
   })
 
   window.addEventListener('blur', () => {
