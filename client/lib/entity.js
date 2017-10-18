@@ -1,5 +1,5 @@
-const _ = require('lodash')
-const { fromJS } = require('immutable')
+import _ from 'lodash'
+import { fromJS } from 'immutable'
 
 export default class Entity {
   constructor (props = {}, initialState = {}) {
