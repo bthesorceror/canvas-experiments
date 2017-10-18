@@ -33,11 +33,23 @@ export default class Entity {
   }
 
   get updaters () {
-    return this.props.get('updaters').toJS()
+    return this.getProp('updaters', [])
   }
 
   get renderers () {
-    return this.props.get('renderers').toJS()
+    return this.getProp('renderers', [])
+  }
+
+  getProp (key, defaultValue = null) {
+    let prop = this.props.get(key)
+
+    if (prop && prop.toJS) {
+      return prop.toJS()
+    } else if (prop) {
+      return prop
+    } else {
+      return defaultValue
+    }
   }
 
   updateState (attributes = {}) {
@@ -48,9 +60,9 @@ export default class Entity {
   update (dt) {
     let ups = _.map(this.updaters, (fn) => {
       return (state) => {
-        return this.updateState(
-          fn(dt, state.toJS())
-        )
+        let result = fn(dt, state.toJS())
+
+        return this.updateState(result)
       }
     })
 

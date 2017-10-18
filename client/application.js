@@ -1,10 +1,10 @@
-import createCanvas from './lib/helpers/create_canvas'
-import Alternator from './lib/helpers/alternator'
-import createSquares from './lib/helpers/create_squares'
-
 import domready from 'domready'
 import gameloop from 'gameloop'
 import _ from 'lodash'
+
+import createCanvas from './lib/helpers/create_canvas'
+import Alternator from './lib/helpers/alternator'
+import createSquares from './lib/helpers/create_squares'
 
 function clearCanvas (context, width, height) {
   context.save()
