@@ -1,18 +1,43 @@
 import _ from 'lodash'
 import { fromJS } from 'immutable'
 
+function defaultBoundingBox (state) {
+  let { x, y, width, height } = state
+
+  return {
+    x: x - (width / 2.0),
+    y: y - (height / 2.0),
+    width: width,
+    height: height
+  }
+}
+
+function drawBoundingBox (context) {
+  if (this.state.get('renderBoundingBox')) {
+    let { x, y, width, height } = this.boundingBox
+
+    context.save()
+    context.strokeStyle = '#FF0000'
+    context.lineWidth = 5
+    context.strokeRect(x, y, width, height)
+    context.restore()
+  }
+}
+
 export default class Entity {
   constructor (props = {}, initialState = {}) {
     this.state = fromJS({
       x: 0,
       y: 0,
       width: 0,
-      height: 0
+      height: 0,
+      renderBoundingBox: false
     }).merge(initialState)
 
     this.props = fromJS({
       updaters: [],
-      renderers: []
+      renderers: [],
+      boundingBox: defaultBoundingBox
     }).merge(props)
   }
 
@@ -34,6 +59,13 @@ export default class Entity {
 
   get updaters () {
     return this.getProp('updaters', [])
+  }
+
+  get boundingBox () {
+    return this.getProp(
+      'boundingBox',
+      defaultBoundingBox
+    )(this.state.toJS())
   }
 
   get renderers () {
@@ -76,5 +108,7 @@ export default class Entity {
       renderer(context, this.state.toJS())
       context.restore()
     })
+
+    drawBoundingBox.call(this, context)
   }
 }

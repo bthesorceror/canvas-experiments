@@ -44,11 +44,20 @@ domready(() => {
     copyCanvas(gameScreen, context, canvas.width, canvas.height)
   })
 
+  let renderBoundingBox = false
   const alternator = Alternator([ squares[2], squares[3] ])
 
   window.addEventListener('keypress', (evt) => {
     if (evt.key === 't') {
       alternator()
+    }
+
+    if (evt.key === 'b') {
+      renderBoundingBox = !renderBoundingBox
+
+      _.each(squares, (square) => {
+        square.updateState({ renderBoundingBox })
+      })
     }
   })
 
